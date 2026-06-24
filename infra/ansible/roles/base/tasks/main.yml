@@ -15,6 +15,39 @@
     state: present
   become: yes
 
+- name: Check if swap file exists
+  stat:
+    path: /swapfile
+  register: swap_file
+
+- name: Create swap file
+  command: fallocate -l 2G /swapfile
+  when: not swap_file.stat.exists
+  become: yes
+
+- name: Set swap file permissions
+  file:
+    path: /swapfile
+    mode: '0600'
+  become: yes
+
+- name: Format swap file
+  command: mkswap /swapfile
+  when: not swap_file.stat.exists
+  become: yes
+
+- name: Enable swap
+  command: swapon /swapfile
+  when: not swap_file.stat.exists
+  become: yes
+
+- name: Add swap to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: '/swapfile none swap sw 0 0'
+    state: present
+  become: yes
+
 - name: Allow SSH through firewall
   ufw:
     rule: allow
