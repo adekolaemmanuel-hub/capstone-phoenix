@@ -1,0 +1,67 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - ufw
+      - curl
+      - wget
+      - git
+    state: present
+  become: yes
+
+- name: Allow SSH through firewall
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+  become: yes
+
+- name: Allow HTTP through firewall
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+  become: yes
+
+- name: Allow HTTPS through firewall
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  become: yes
+
+- name: Allow k3s API internally
+  ufw:
+    rule: allow
+    src: "10.0.0.0/16"
+    port: "6443"
+    proto: tcp
+  become: yes
+
+- name: Allow flannel VXLAN internally
+  ufw:
+    rule: allow
+    src: "10.0.0.0/16"
+    port: "8472"
+    proto: udp
+  become: yes
+
+- name: Allow kubelet internally
+  ufw:
+    rule: allow
+    src: "10.0.0.0/16"
+    port: "10250"
+    proto: tcp
+  become: yes
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+    policy: deny
+  become: yes

@@ -1,0 +1,17 @@
+---
+- name: Base hardening on all nodes
+  hosts: all
+  roles:
+    - base
+
+- name: Install k3s server on control plane
+  hosts: control_plane
+  roles:
+    - k3s_server
+
+- name: Install k3s agents on workers
+  hosts: workers
+  vars:
+    control_plane_ip: "100.52.188.98"
+  roles:
+    - k3s_agent
