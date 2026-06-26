@@ -12,6 +12,7 @@
 - name: Install k3s agents on workers
   hosts: workers
   vars:
-    control_plane_ip: "44.193.17.151"
+    control_plane_ip: "10.0.1.196"
+    control_plane_public_ip: "32.195.65.166"
   roles:
     - k3s_agent

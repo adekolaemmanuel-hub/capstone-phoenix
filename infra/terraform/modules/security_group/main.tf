@@ -27,12 +27,12 @@ resource "aws_security_group" "nodes" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # k3s API - internal only (node to node)
+  # k3s API - internal + your laptop
   ingress {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
+    cidr_blocks = ["10.0.0.0/16", "${var.my_ip}/32"]
   }
 
   # flannel VXLAN (k3s internal networking)
