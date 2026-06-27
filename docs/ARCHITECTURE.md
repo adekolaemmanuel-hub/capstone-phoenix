@@ -1,47 +1,90 @@
-# Architecture (fill this in)
+# Architecture — Capstone Phoenix
 
-## 1. Topology diagram
-> Draw it (ASCII, Excalidraw, draw.io — anything). Show: your nodes, where each TaskApp
-> tier runs, the ingress controller, and the request path.
+## Node Topology
 
-```
-[ replace with your diagram ]
+3-node k3s cluster on AWS EC2 (us-east-1a):
 
-  Internet ──DNS──▶ taskapp.<you>.dev / api.<you>.dev
-        │
-        ▼
-  ingress controller (node: ____)  ──TLS terminated by cert-manager──┐
-        │                                                            │
-        ▼                                                            ▼
-  frontend Service ──▶ frontend Pods (nodes: __, __)        backend Service ──▶ backend Pods (nodes: __, __)
-                              │  /api proxy                              │
-                              └────────────────────────────────────────▶│
-                                                                         ▼
-                                                          postgres Service ──▶ postgres-0 (PVC on node __)
-```
+| Node | Role | Instance | Private IP |
+|------|------|----------|------------|
+| ip-10-0-1-196 | control-plane | t3.medium | 10.0.1.196 |
+| ip-10-0-1-147 | worker | t3.medium | 10.0.1.147 |
+| ip-10-0-1-82 | worker | t3.medium | 10.0.1.82 |
 
-## 2. Node & network
-- Nodes (role, size, AZ/region): …
-- CIDR / subnet choices and why: …
-- Firewall: what's open to the world, what's internal, and why `6443` is closed: …
+## Request Flow
+User Browser
 
-## 3. Request flow (one paragraph)
-> DNS → ingress → TLS → frontend → /api → backend → Postgres. Be specific about names/ports.
+│
 
-## 4. The single-server assumptions you fixed  ← graders look here
-> For each, name the assumption that was safe on one box but breaks on a cluster, and the
-> K8s mechanism you used. Minimum: migrations, persistent storage, traffic routing,
-> self-healing, zero-downtime deploys, secrets.
+▼
 
-| Single-server assumption | Why it breaks at scale | How you fixed it |
-|---|---|---|
-| migrate-on-boot in the entrypoint | 2+ replicas race on `alembic upgrade head` | … |
-| named volume on the host | Pods reschedule across nodes | … |
-| `ports:` published on the host | many Pods, many nodes, one front door needed | … |
-| … | … | … |
+DNS: taskapp.adekoladevops.xyz (Namecheap → 32.195.65.166)
 
-## 5. Choices & trade-offs
-- Raw YAML vs Helm vs kustomize — why: …
-- ingress-nginx vs k3s Traefik — why: …
-- CNI / NetworkPolicy enforcement — what and why: …
-- Secrets approach (out-of-band vs Sealed/External Secrets) — why: …
+│
+
+▼
+
+AWS Security Group (port 80/443 open)
+
+│
+
+▼
+
+Traefik Ingress Controller (k3s built-in)
+
+│
+
+├── taskapp.adekoladevops.xyz → frontend-service:80 → nginx pod
+
+│       │
+
+│       └── /api/* proxied → backend:5000
+
+│
+
+└── api.adekoladevops.xyz → backend:5000 → Flask pod
+
+│
+
+└── postgres-service:5432 → Postgres StatefulSet
+TLS: cert-manager + Let's Encrypt (letsencrypt-prod ClusterIssuer)
+## How Each Core Requirement Fixes Single-Server Assumptions
+
+| Requirement | Single-server problem | Kubernetes fix |
+|-------------|----------------------|----------------|
+| Postgres StatefulSet + PVC | Data lost if container restarts | PVC persists data independently of pod lifecycle |
+| 2 backend replicas + topologySpreadConstraints | One crash kills the API | Pods spread across nodes; one node down = still serving |
+| 2 frontend replicas + topologySpreadConstraints | One crash kills the UI | Same as above |
+| Migration Job (not entrypoint) | Race condition at 2+ replicas | Job runs once before replicas start |
+| RollingUpdate maxUnavailable:0 | Downtime during deploys | Zero-downtime rolling updates |
+| Liveness + readiness probes | Bad pods receive traffic | Only healthy pods get traffic |
+| Argo CD GitOps | Manual kubectl apply = human error | Git is source of truth; cluster self-heals |
+| HPA | Fixed capacity, can't scale | Auto-scales backend on CPU pressure |
+| PodDisruptionBudget | Node drain kills all replicas | Guarantees minAvailable=1 during maintenance |
+| TLS via cert-manager | HTTP only | Automatic Let's Encrypt cert rotation |
+
+## GitOps Flow
+Developer pushes commit to main
+
+│
+
+▼
+
+GitHub (manifests/ directory updated)
+
+│
+
+▼
+
+Argo CD detects drift (polls every 3 minutes)
+
+│
+
+▼
+
+Argo CD syncs cluster to match git state
+
+│
+
+▼
+
+Kubernetes applies changes (rolling update)

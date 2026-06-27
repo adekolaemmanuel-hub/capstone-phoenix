@@ -1,0 +1,4 @@
+NAME            STATUS   ROLES           AGE   VERSION        INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION   CONTAINER-RUNTIME
+ip-10-0-1-147   Ready    <none>          31h   v1.35.5+k3s1   10.0.1.147    <none>        Ubuntu 22.04.3 LTS   6.2.0-1017-aws   containerd://2.2.3-k3s1
+ip-10-0-1-196   Ready    control-plane   32h   v1.35.5+k3s1   10.0.1.196    <none>        Ubuntu 22.04.3 LTS   6.2.0-1017-aws   containerd://2.2.3-k3s1
+ip-10-0-1-82    Ready    <none>          31h   v1.36.2+k3s1   10.0.1.82     <none>        Ubuntu 22.04.3 LTS   6.2.0-1017-aws   containerd://2.3.2-k3s2

@@ -1,25 +1,25 @@
-# Cost (fill this in)
+# Cost Analysis — Capstone Phoenix
 
-This echoes the Docker lesson's "why one server" thread — except now the answer to "is the
-extra cost worth it?" is yours to argue.
+## Monthly Infrastructure Cost (AWS us-east-1)
 
-## Monthly itemized cost
-| Item | Spec | Qty | $/mo |
-|---|---|---:|---:|
-| control-plane VM | … | 1 | … |
-| worker VMs | … | 2+ | … |
-| load balancer / elastic IP | … | … | … |
-| block storage (PVC) | … | … | … |
-| object storage (state, backups) | … | … | … |
-| DNS / domain | … | … | … |
-| **Total** | | | **$…** |
+| Resource | Type | Qty | Unit Price | Monthly Cost |
+|----------|------|-----|------------|--------------|
+| EC2 Control Plane | t3.medium | 1 | ~$0.0416/hr | ~$30.00 |
+| EC2 Worker Nodes | t3.medium | 2 | ~$0.0416/hr | ~$60.00 |
+| EBS Volumes (root) | gp2 8GB | 3 | ~$0.10/GB/mo | ~$2.40 |
+| EBS Volume (Postgres PVC) | gp2 5GB | 1 | ~$0.10/GB/mo | ~$0.50 |
+| S3 (Terraform state) | Standard | 1 | ~$0.023/GB/mo | ~$0.01 |
+| DynamoDB (state lock) | On-demand | 1 | Pay per request | ~$0.01 |
+| Data transfer | Outbound | - | ~$0.09/GB | ~$1.00 |
 
-## Compared to the single-server Compose+Portainer deploy
-- That stack cost roughly: $…
-- This cluster costs: $…
-- **What the extra spend buys** (be honest — tie to §0 of the brief): HA, autoscale,
-  zero-downtime, multi-node self-healing. When is it NOT worth it? …
+**Total estimated monthly cost: ~$94/month**
 
-## How I'd halve this
-> One concrete paragraph: spot/preemptible workers? smaller control-plane? k3s on 2 nodes?
-> shared ingress? …
+## How to Cut Cost in Half
+
+Switch all three nodes from t3.medium ($0.0416/hr) to t3.small ($0.0208/hr).
+This reduces compute cost from ~$90/month to ~$45/month — roughly a 50% reduction.
+The tradeoff is less headroom for memory-intensive workloads like Argo CD.
+A better long-term approach would be to use spot instances for the two worker nodes
+(typically 60-70% cheaper than on-demand) while keeping the control plane on
+on-demand to ensure cluster stability. This would bring the total to approximately
+$35-40/month while maintaining the same architecture.
